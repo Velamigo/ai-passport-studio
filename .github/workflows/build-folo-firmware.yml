@@ -1,0 +1,41 @@
+name: Build Folo AI Passport firmware
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/build-folo-firmware.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: espressif/idf:v6.0.2
+
+    steps:
+      - name: Checkout website
+        uses: actions/checkout@v4
+
+      - name: Checkout firmware source
+        run: git clone --depth 1 --branch cleanup https://gitee.com/Vemido/folo-ai-passport-xiaozhi.git firmware-source
+
+      - name: Build merged ESP32-C3 image
+        working-directory: firmware-source
+        shell: bash
+        run: |
+          source "$IDF_PATH/export.sh"
+          python scripts/build.py folo/ai-passport-c3 \
+            --name folo-ai-passport-c3 \
+            --language zh-CN \
+            --wake-word disabled
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: folo-ai-passport-xiaozhi-cleanup
+          path: firmware-source/build/merged-binary.bin
+          if-no-files-found: error
